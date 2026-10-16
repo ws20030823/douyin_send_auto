@@ -1,82 +1,252 @@
-# 抖音网页版单次发信初版
+# 抖音自动发消息（续火花）工具
 
-云服务器部署建议优先使用 **Ubuntu 24.04 LTS（x86_64、4 GB 内存）**；Linux 首次扫码、无界面发信和 systemd 定时器的步骤见 [LINUX_DEPLOY.md](LINUX_DEPLOY.md)。现有 Windows 本机操作方式仍可使用。Linux 云端实际发信尚未验证，应先在所购服务器上手动核对，再启用定时器。
+一个使用 Playwright 操作抖音网页版聊天的个人自动化工具，可用于给联系人或群聊定时发送消息、帮助维持抖音聊天火花（续火花）。可以配置聊天对象、消息和每天发送时间，并在发送后核对聊天记录、发送结果邮件汇总。
 
-Linux 附带的 systemd 服务使用 `run --max-lateness-minutes 10`，只发送设定时间后 10 分钟内的任务；手动运行不带该参数的 `run` 仍沿用当天到时即发送的行为。
+项目目前仍是基于网页版界面的个人工具。抖音网页结构、登录验证和自动化规则可能变化；请先用少量任务验证登录与发送，再启用定时任务。云服务器部署步骤见 [Linux 部署指南](LINUX_DEPLOY.md)。
 
-当前阶段已验证**给一个已有单聊会话发送一条文字**，并加入了可供计划任务调用的 `run` 命令；尚未实际部署到阿里云。2026-10-14 已在网页版向 `moonbird` 发送“测试”，页面显示己方消息气泡，左侧会话摘要同步更新。这只能证明网页端发信成功；火花是否计数需在抖音手机端核对。
+## 目录
 
-## Windows 本机运行
+- [项目简介](#项目简介)
+- [功能特性](#功能特性)
+- [工作方式与限制](#工作方式与限制)
+- [运行环境](#运行环境)
+- [安装步骤](#安装步骤)
+- [首次登录](#首次登录)
+- [配置任务](#配置任务)
+- [手动测试与运行](#手动测试与运行)
+- [设置每天自动执行](#设置每天自动执行)
+- [邮件和天气配置](#邮件和天气配置)
+- [发送状态与重试规则](#发送状态与重试规则)
+- [常见问题](#常见问题)
+- [目录结构](#目录结构)
 
-安装 Python 3.11+，在本目录打开 PowerShell：
+## 项目简介
+
+程序在已登录的抖音网页版中查找联系人或群聊，按配置发送文字消息，并检查消息是否出现在自己的聊天记录中。适合在个人设备或自己的 Linux 云服务器上，按固定时间给已确认的聊天对象发送固定内容，可用于日常续火花。程序只能核对消息是否出现在聊天记录中，火花是否成功续上以抖音客户端显示为准。
+
+所有时间均按北京时间（Asia/Shanghai）处理。消息发送对象、文本和时间由本地 `config.json` 配置。
+
+## 功能特性
+
+- 支持向联系人单聊和群聊发送文字。
+- 每条任务可独立设置聊天名称、消息内容、每天发送时间和启用状态。
+- 发送前核对聊天标题与输入框，发送后刷新会话并检查己方消息记录。
+- 定时运行时按任务 ID 和北京时间日期去重；同一聊天可以配置多条不同任务。
+- 发送结果未确认时自动刷新核对，最多点击发送 5 次；明确在点击发送前失败的任务可在迟到窗口内重试。
+- 可将每条消息追加日期、星期和指定城市的天气预报。
+- 可在同一发送时间的任务完成后发送 QQ 邮箱汇总，并在结果状态变化时发送更新。
+- 支持 Linux `systemd` 定时运行；也可以在 Windows 上手动运行。
+
+## 工作方式与限制
+
+程序通过 Playwright 控制 Chromium 中可见的网页元素，不调用抖音私有接口。它使用固定浏览器配置目录保存登录会话，因此后续运行通常不需要每天扫码；抖音要求重新验证、会话过期或更换服务器时仍需本人重新登录。
+
+这是依赖网页布局的自动化程序。抖音改版、登录验证、网络延迟或页面未及时显示消息，都可能导致任务失败或结果无法确认。结果未确认时可能发生重复消息，启用自动发送前请先接受这一风险，并在聊天记录中核对。
+
+自动化操作可能受到抖音用户协议和平台策略限制，也可能影响账号安全或可用性。请只用于自己的账号和已同意接收消息的对象，控制发送范围，并自行评估账号风险。程序遇到登录验证或页面变化时会停止，不会尝试绕过验证。
+
+## 运行环境
+
+推荐的云端环境：
+
+- Ubuntu 24.04 LTS，x86_64
+- 建议至少 2 核 CPU、4 GB 内存
+- Python 3.10 或更新版本
+- Playwright 与 Chromium，以及 Chromium 所需的系统依赖
+
+## 安装步骤
+
+以下以 Ubuntu 为例。将仓库克隆到服务用户主目录下的 `douyin-spark`，以匹配随附的 systemd 单元文件：
+
+```bash
+sudo apt update
+sudo apt install -y git python3 python3-venv python3-pip
+git clone https://github.com/ws20030823/douyin_send_auto.git ~/douyin-spark
+cd ~/douyin-spark
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+sudo .venv/bin/python -m playwright install-deps chromium
+.venv/bin/python -m playwright install chromium
+```
+本地 Windows 安装可在项目目录的 PowerShell 中执行：
 
 ```powershell
 py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe -m playwright install chromium
-.\.venv\Scripts\python.exe spark_sender.py login
 ```
 
-`login` 打开独立 Chromium 浏览器。请在里面扫码登录抖音网页版聊天，看到聊天列表后回到终端按 Enter。Codex 内置浏览器与这个独立浏览器的登录会话**不共享**，因此需要在这里再扫一次码。登录资料保存在本机 `.spark-state/browser-profile`，该目录已加入 `.gitignore`，不要上传到仓库或发给别人。
+## 首次登录
 
-**不需要每天扫码。**后续 `send` / `run` 每次都使用同一浏览器配置目录，复用抖音保存的登录会话。只有平台让会话过期、触发验证、换服务器或丢失该目录时，才需要重新执行 `login`。程序遇到登录失效会退出，不会尝试自动输入验证码。首次登录应在最终运行的那台机器（将来的阿里云 Windows 服务器）上完成；本机登录资料不必拷贝到服务器。
+在实际运行发送任务的机器上登录。Linux 服务器可以先尝试短信登录：
 
-先核对会话，不发送：
-
-```powershell
-.\.venv\Scripts\python.exe spark_sender.py send --to "moonbird" --message "测试" --dry-run
+```bash
+cd ~/douyin-spark
+.venv/bin/python spark_sender.py login --sms --headless
 ```
 
-真正发送时去掉 `--dry-run`：
+按终端提示输入手机号和短信验证码。如果抖音要求用原设备扫码，程序会将登录页面截图保存到 `.spark-state/login-qr.png`；详细下载截图和处理二次验证的步骤见 [Linux 部署指南](LINUX_DEPLOY.md)。也可以直接运行 `login --headless` 使用扫码登录。
 
-```powershell
-.\.venv\Scripts\python.exe spark_sender.py send --to "moonbird" --message "测试"
+登录会话保存在 `.spark-state/browser-profile`。请使用同一个 Linux 用户运行登录和定时任务，勿上传或分享 `.spark-state`。如果会话过期或要求重新验证，再运行登录命令并由账号本人完成验证。
+
+## 配置任务
+
+启动本机配置页：
+
+```bash
+cd ~/douyin-spark
+.venv/bin/python config_page.py
 ```
 
-手动 `send` 允许同一天给同一好友重复发送。若上次执行显示发送结果不明，请先刷新聊天记录核对，再决定是否重试。
+然后在服务器本机浏览器打开 `http://127.0.0.1:8765/`。若服务器没有桌面环境，可按[部署指南中的 SSH 端口转发步骤](LINUX_DEPLOY.md#4-配置页面)，从自己的电脑安全访问配置页。不要在云服务器安全组中开放 8765 端口。
 
-若发送时提示“聊天列表未出现”，先运行 `login` 并在**脚本打开的独立浏览器**扫码；Codex 内置浏览器或其他 Chrome 窗口中的登录状态不会自动传给脚本。扫码后重新运行发送命令。发送中途失败留下同一条草稿时，脚本会识别并使用现有草稿，不会再次追加文字；若草稿与要发送的文字不同，则停止并请人工处理。
+配置项示例：
 
-## 每天自动运行
-
-在项目目录运行配置页：
-
-```powershell
-.\.venv\Scripts\python.exe config_page.py
+```json
+{
+  "friends": [
+    {
+      "id": "moonbird-morning",
+      "name": "moonbird",
+      "message": "早上好，今天也要开心！",
+      "send_at": "09:00",
+      "enabled": false
+    }
+  ],
+  "daily_note": {
+    "enabled": false,
+    "city": "重庆"
+  },
+  "email": {
+    "enabled": false,
+    "qq_address": "",
+    "recipient": "",
+    "authorization_code": ""
+  }
+}
 ```
 
-然后在浏览器打开 `http://127.0.0.1:8765/`，填写好友昵称、消息内容和每天发送时间，点击“保存配置”。页面会直接写入项目中的 `config.json`；配置页只监听本机，保存时不会发信，按 Ctrl+C 可关闭。配置页需要在**实际执行发送的那台机器**上运行；未来部署到阿里云 Windows 后，可通过远程桌面在服务器浏览器中打开。
+- `id`：每条任务的唯一标识。同一联系人可有多条任务，但 ID 必须不同。
+- `name`：网页搜索结果中显示的联系人或群聊名称。群聊只填群名称，不需要在配置中写成员数量。
+- `message`：要发送的文字。
+- `send_at`：每天的发送时间，使用 24 小时制 `HH:MM`。
+- `enabled`：是否启用。新增配置建议先设为 `false`，完成核对后再启用。
 
-配置页还可以设置 QQ 邮箱汇总：填写 QQ 发件邮箱、收件邮箱和 SMTP 授权码，并开启通知。定时运行时，同一设定时间的全部任务结束后会发送一封汇总，列出每位好友成功、失败或结果未确认以及原因；手动 `send` 不会触发汇总。授权码会保存在被 Git 忽略的 `config.json` 中，切勿公开。云服务器的具体步骤见 [LINUX_DEPLOY.md](LINUX_DEPLOY.md)。
+若搜索到多个同名结果，程序按页面从上到下选择第一个。请先用 `--dry-run` 核对右侧聊天标题；若无法唯一判断目标，先调整搜索名称，避免发给错误对象。
 
-可开启“每日日期与天气”，在每条自定义消息后追加北京时间日期、星期和指定城市的当日天气预报。天气不可用时只追加日期和星期。
+配置页保存后会写入 `config.json`。它含有消息文本和可能存在的邮箱授权码，应只保存在自己的设备或服务器上。该文件已被 Git 忽略；不要提交到 GitHub、部署 ZIP 或聊天消息中。Linux 服务器可执行 `chmod 600 ~/douyin-spark/config.json` 限制读取权限。
 
-也可以复制 `config.example.json` 为 `config.json` 手动编辑。项目默认使用北京时间，`send_at` 格式是 24 小时制 `HH:MM`。同一好友可配置多条任务，各自使用不同的 `id` 和发送时间。先执行一次 `--dry-run` 核对好友，然后手动执行：
+## 手动测试与运行
 
-```powershell
-.\.venv\Scripts\python.exe spark_sender.py run
+先进行不发送消息的对象核对：
+
+```bash
+.venv/bin/python spark_sender.py send --to 'moonbird' --message '测试消息' --dry-run --headless
 ```
 
-`run` 处理当前时间已到的定时任务。去重按任务 `id` 进行，同一好友一天可收到多条不同任务的消息。点击后结果不明时会刷新会话核对，仍未确认则最多尝试 5 次；明确在点击前失败的任务会在迟到窗口内由下一次定时运行重试。**网络延迟或页面漏显可能导致重复消息**。手动 `send` 不受每日次数限制，且只尝试一次。计划在 Windows 任务计划程序中每 5 分钟运行一次上面的命令，程序会自行判断到时任务。配置样例默认 `enabled: false`，所以安装后不会自行给好友发信。最近一次执行状态写在 `.spark-state/last-run.json`；`needs_review` 表示需要人工查看会话。
+确认会话标题和输入框正确后，才运行真实发送：
 
-在任务计划程序中，程序路径填项目 `.venv\Scripts\python.exe` 的**绝对路径**，参数填 `spark_sender.py run`，起始目录填项目目录。要让服务器重启后无人登录也运行，可在任务属性选择“无论用户是否登录都要运行”，使用**首次扫码登录时的同一个 Windows 用户**保存任务凭据；`run` 会以无界面的 Chromium 启动。这个模式在阿里云实例上仍需实机测试抖音是否允许保持登录及发送。若无界面模式不可用，可尝试 `run --headed`，但需要保留可交互的 Windows 登录桌面。不要把 Windows 用户密码写入项目脚本。
+```bash
+.venv/bin/python spark_sender.py send --to 'moonbird' --message '测试消息' --headless
+```
 
-任务计划程序只负责启动，登录状态保存在 `.spark-state/browser-profile`。服务器重启不会自动清空该目录；抖音主动让登录失效时仍须本人重新扫码。
+手动 `send` 每次执行一次发送，不触发汇总邮件，也不受定时任务的每日 ID 去重限制。显示 `sent` 后仍建议在抖音客户端核对消息。
 
-## 当前发送规则
+手动执行配置中当前到时的任务：
 
-- 搜索结果为已有会话或群聊时点击对应结果；搜索结果为“联系人”时，只寻找该结果附近的“发消息”按钮。群聊标题带成员人数时，会按群名重试搜索，并允许标题中的人数变化。出现多个匹配结果时，按页面从上到下选择第一个；同名联系人和群聊同时出现时，务必先确认网页上的排序符合预期。
-- 打开后再次核对右侧会话标题；群聊可接受同一群名后人数变化，避免把标题变化误判为发送失败。
-- 发送前检查编辑框内容和会话标题；点击后先确认己方消息气泡，再刷新网页、重新打开单聊，确认该消息仍在，才标记 `sent`。无法确认时重新核对并最多尝试 5 次；仍不明则标记 `uncertain`，需要人工检查。
-- `.spark-state/send-ledger.json` 只记录定时任务按 `id` 和北京时间日期的执行状态。手动 `send` 不使用每日去重；发送结果不明时仍应先人工检查聊天记录，再决定是否重试。
-- 每个发送时间会发送一次结果邮件；若迟到窗口内某条任务之后从失败变为成功或未确认，结果状态变化后会再发一封更新汇总。完全相同的结果不会重复发邮件。
-- `.spark-state` 在 Linux 上使用仅当前用户可读写的目录和文件权限；实例锁由操作系统自动释放，进程异常退出后不需要手工删除锁文件。
-- 遇到扫码、验证码、登录失效、页面改版时停止，不尝试绕过。
+```bash
+.venv/bin/python spark_sender.py run
+```
 
-可用 `.\.venv\Scripts\python.exe -m unittest -v test_sender.py` 运行本地 UI 冒烟测试；测试页面在本地构造，不会发出抖音私信。
+若需模拟定时器的 10 分钟迟到窗口：
 
-这是基于当前网页版界面编写的初版，抖音改动页面结构后可能需要更新元素定位。平台[用户服务协议](https://www.douyin.com/agreements/?id=6773906068725565448)第 5.1 条对自动化程序接入有限制，使用前请自行评估账号风险。
+```bash
+.venv/bin/python spark_sender.py run --max-lateness-minutes 10
+```
 
-## 下一阶段
+## 设置每天自动执行
 
-在最终云服务器完成 `login --headless` 和 `send --headless` 实测，并在手机端核对消息与火花，然后按 [Linux 部署步骤](LINUX_DEPLOY.md)启用定时器。
+仓库提供了 `deploy/systemd/douyin-spark.service` 和 `.timer`。确认登录和无界面发送已在服务器上手动测试后，以安装项目的普通用户执行：
+
+```bash
+mkdir -p ~/.config/systemd/user
+cp deploy/systemd/douyin-spark.service deploy/systemd/douyin-spark.timer ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now douyin-spark.timer
+sudo loginctl enable-linger "$USER"
+systemctl --user list-timers douyin-spark.timer
+```
+
+定时器每 5 分钟检查一次任务，只处理设定时间后 10 分钟内到期的任务。服务器在发送时间离线超过 10 分钟时，当天会跳过该任务。登录会话和定时任务应始终使用同一个 Linux 用户。
+
+查看定时器和执行日志：
+
+```bash
+systemctl --user status douyin-spark.timer
+journalctl --user -u douyin-spark.service -n 50 --no-pager
+cat .spark-state/last-run.json
+```
+
+停止定时任务：
+
+```bash
+systemctl --user disable --now douyin-spark.timer
+```
+
+更完整的服务器准备、登录、测试和排错步骤见 [Linux 部署指南](LINUX_DEPLOY.md)。
+
+## 邮件和天气配置
+
+在配置页开启“发送结果邮件”，填写 QQ 发件邮箱、收件邮箱和 QQ 邮箱 SMTP 授权码。需要先在 QQ 邮箱设置中开启 SMTP 并生成授权码；这里不能填写 QQ 登录密码。定时 `run` 会在同一发送时间的任务处理后发送汇总。手动 `send` 不发送邮件。
+
+开启“每日日期与天气”并填写城市后，程序会在自定义消息后附加北京时间日期和星期，以及 Open-Meteo 提供的当天预报。天气接口或城市查询不可用时，仍会附加日期和星期，不附加天气内容。天气属于预报信息。
+
+## 发送状态与重试规则
+
+- 定时任务以 `id` 和北京时间日期去重。同一任务当天确认发送后不会重复执行；不同任务可以向同一聊天发送多条消息。
+- 发送后程序会刷新并检查己方消息记录，确认后记为 `sent`。
+- 明确在点击发送前失败的任务，会在 10 分钟迟到窗口内由下一次定时运行重试。
+- 点击后无法确认时，程序会刷新核对并最多尝试 5 次；仍不确定时记录为 `uncertain`，应先人工检查聊天记录再决定是否重发。
+- 网络延迟或网页未显示已发消息时，重复尝试可能造成重复消息。
+- 汇总邮件按结果状态去重；若某项结果之后发生变化，会发送更新汇总。邮件提交结果本身不明确时，不会自动重复发送同一份结果汇总。
+
+最近一次运行状态保存在 `.spark-state/last-run.json`，定时任务发送记录保存在 `.spark-state/send-ledger.json`。Linux 上这些状态文件仅当前运行用户可读写。
+
+## 常见问题
+
+### 提示聊天列表未出现或登录失效
+
+在同一台机器、同一个系统用户下重新运行 `login` 并完成扫码或平台要求的验证。脚本使用自己的 `.spark-state/browser-profile`，不会共享其他浏览器的登录状态。
+
+### 提示未能打开单聊或群聊
+
+先在网页版搜索并确认目标名称。检查结果是否有同名对象、群聊人数后缀是否变化，以及右侧标题是否对应预期聊天。可以先用 `send --dry-run` 测试；不要在目标不明确时真实发送。
+
+### 邮件没有收到
+
+检查 `config.json` 中邮件是否启用，发件地址、收件地址和 SMTP 授权码是否正确；确认服务器可连接 `smtp.qq.com:465`。同时查看 `journalctl` 日志和邮箱垃圾箱。邮件提交状态不明确时，先检查邮箱再决定后续操作。
+
+### 天气没有追加
+
+日期和星期仍会添加；天气查询失败时程序会在运行日志输出原因。请检查服务器网络、城市名称和 Open-Meteo 服务状态。
+
+### 如何检查是否运行到时任务
+
+查看 `systemctl --user list-timers douyin-spark.timer`、服务日志和 `.spark-state/last-run.json`。配置中的 `send_at` 使用北京时间 `HH:MM`；测试时确认服务器和程序时区设置正确。
+
+## 目录结构
+
+```text
+.
+├── spark_sender.py             # 登录、收件人定位、发送和定时执行
+├── config_page.py              # 本地配置页服务
+├── config.html                 # 配置页面结构
+├── config.css                  # 配置页面样式
+├── config.js                   # 配置页面交互
+├── daily_note.py               # 日期、星期和天气附加
+├── config.example.json         # 不含真实凭据的配置示例
+├── requirements.txt            # Python 依赖
+├── deploy/systemd/              # systemd 服务和定时器
+├── config.json                 # 本机配置，不应上传
+└── .spark-state/                # 登录资料和运行状态，不应上传
+```

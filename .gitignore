@@ -1,0 +1,15 @@
+.venv/
+.spark-state/
+__pycache__/
+*.pyc
+config.json
+config.*.json
+!config.example.json
+*.log
+douyin-spark-linux.zip
+douyin-spark-linux/
+.env
+.env.*
+!.env.example
+*.pem
+*.key

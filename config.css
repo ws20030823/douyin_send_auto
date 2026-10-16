@@ -1,0 +1,66 @@
+:root {
+  color-scheme: light;
+  font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  color: #18312c;
+  background: #f6f8f5;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; }
+
+.shell { max-width: 980px; margin: 0 auto; padding: 44px 24px 72px; }
+
+.page-header { display: flex; justify-content: space-between; align-items: end; gap: 24px; }
+.eyebrow { margin: 0 0 8px; color: #277963; font-size: 12px; font-weight: 700; letter-spacing: .16em; }
+h1 { margin: 0; font-size: clamp(28px, 4vw, 38px); letter-spacing: -.035em; }
+.intro { margin: 12px 0 0; color: #60706a; line-height: 1.7; }
+.header-actions { display: flex; gap: 10px; flex-wrap: wrap; flex-shrink: 0; }
+.button { border: 1px solid transparent; border-radius: 11px; padding: 11px 16px; font: inherit; font-weight: 700; cursor: pointer; }
+.button:disabled { opacity: .6; cursor: wait; }
+.button.primary { background: #1c745a; color: #fff; }
+.button.primary:hover:not(:disabled) { background: #145c46; }
+.button.secondary { background: #fff; border-color: #c9d7cf; color: #245847; }
+.button.secondary:hover { background: #ecf5ef; }
+.notice { margin: 28px 0 32px; padding: 16px 18px; background: #eaf4ec; border: 1px solid #d0e5d4; border-radius: 12px; line-height: 1.7; color: #345d48; }
+.notice strong { color: #194d36; }
+.section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.section-heading h2 { font-size: 19px; margin: 0; }
+.section-heading h2 span { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 20px; background: #e3eee6; color: #24654b; font-size: 13px; }
+.section-heading p { margin: 0; color: #718079; font-size: 13px; }
+.tasks { display: grid; gap: 16px; }
+.task-card { background: #fff; border: 1px solid #dce6dd; border-radius: 16px; box-shadow: 0 5px 20px rgba(19, 64, 41, .035); padding: 20px; }
+.email-card { margin-top: 30px; background: #fff; border: 1px solid #dce6dd; border-radius: 16px; padding: 20px; }
+.email-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
+.email-fields .field:last-child { grid-column: 1 / -1; }
+.task-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 19px; }
+.task-top > div:first-child { display: flex; align-items: center; gap: 10px; }
+.task-number { width: 27px; height: 27px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: #e6f2e9; color: #1f7252; font-size: 13px; font-weight: 700; }
+h3 { margin: 0; font-size: 16px; }
+.task-actions { display: flex; align-items: center; gap: 18px; }
+.toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.toggle input { accent-color: #1c745a; width: 17px; height: 17px; }
+.remove-task { background: none; border: 0; color: #a14b4b; cursor: pointer; font: inherit; font-size: 13px; padding: 5px; }
+.remove-task:hover { text-decoration: underline; }
+.fields { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 8px; color: #384e44; font-size: 13px; font-weight: 700; }
+.field input, .field textarea { width: 100%; border: 1px solid #cbd8ce; border-radius: 9px; padding: 10px 12px; outline: none; font: inherit; font-size: 14px; font-weight: 400; color: #1d3227; background: #fff; }
+.field input:focus, .field textarea:focus { border-color: #258563; box-shadow: 0 0 0 3px rgba(37, 133, 99, .12); }
+.field textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+.message-field { grid-column: 1 / -1; }
+.empty-state { border: 1px dashed #b9cbbb; border-radius: 13px; padding: 32px; text-align: center; color: #738479; background: #fff; }
+.status { min-height: 24px; margin: 20px 0 0; color: #1c745a; font-weight: 600; }
+.status.error { color: #a13535; }
+.footer-note { color: #849188; font-size: 12px; margin-top: 36px; line-height: 1.7; }
+code { background: rgba(31, 99, 64, .09); border-radius: 4px; padding: 1px 4px; font-family: Consolas, monospace; font-size: .93em; }
+[hidden] { display: none !important; }
+
+@media (max-width: 760px) {
+  .shell { padding: 28px 16px 48px; }
+  .page-header, .section-heading { display: block; }
+  .header-actions { margin-top: 20px; }
+  .section-heading p { margin-top: 7px; }
+  .fields { grid-template-columns: 1fr; }
+  .email-fields { grid-template-columns: 1fr; }
+  .message-field { grid-column: auto; }
+}

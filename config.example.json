@@ -1,0 +1,28 @@
+{
+  "friends": [
+    {
+      "id": "moonbird-evening",
+      "name": "moonbird",
+      "message": "这里改成你每天想发送的文字",
+      "send_at": "20:30",
+      "enabled": false
+    },
+    {
+      "id": "moonbird-later",
+      "name": "moonbird",
+      "message": "同一好友当天第二条消息示例",
+      "send_at": "21:30",
+      "enabled": false
+    }
+  ],
+  "daily_note": {
+    "enabled": false,
+    "city": "重庆"
+  },
+  "email": {
+    "enabled": false,
+    "qq_address": "",
+    "recipient": "",
+    "authorization_code": ""
+  }
+}

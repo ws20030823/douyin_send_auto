@@ -1,0 +1,8 @@
+[Unit]
+Description=Douyin scheduled message sender
+
+[Service]
+Type=oneshot
+TimeoutStartSec=60min
+WorkingDirectory=%h/douyin-spark
+ExecStart=%h/douyin-spark/.venv/bin/python %h/douyin-spark/spark_sender.py run --max-lateness-minutes 10

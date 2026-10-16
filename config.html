@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>抖音定时消息配置</title>
+  <link rel="stylesheet" href="/config.css">
+  <script src="/config.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">本机配置</p>
+        <h1>定时发送消息</h1>
+        <p class="intro">填写好友昵称、消息内容和发送时间。保存后会写入项目中的 <code>config.json</code>。</p>
+      </div>
+      <div class="header-actions">
+        <button id="add-task" type="button" class="button secondary">＋ 添加一条</button>
+        <button id="save-config" type="button" class="button primary">保存配置</button>
+      </div>
+    </header>
+
+    <div class="notice">
+      <strong>时间按北京时间计算。</strong>保存只修改配置，不会立刻发送。若今天的设定时间已经过去，下一次运行 <code>run</code> 时会处理新启用的任务。
+    </div>
+
+    <section aria-labelledby="tasks-heading">
+      <div class="section-heading">
+        <h2 id="tasks-heading">发送任务 <span id="task-count">0</span></h2>
+        <p>同一好友可以添加多条任务，分别设置时间和内容。</p>
+      </div>
+      <div id="tasks" class="tasks"></div>
+      <div id="empty-state" class="empty-state" hidden>还没有任务。点击“添加一条”开始填写。</div>
+    </section>
+
+    <section class="email-card" aria-labelledby="daily-note-heading">
+      <div class="section-heading"><h2 id="daily-note-heading">每日日期与天气</h2></div>
+      <label class="toggle"><input id="daily-note-enabled" type="checkbox"><span>在每条自定义消息后追加日期、星期和天气</span></label>
+      <div class="email-fields">
+        <label class="field"><span>天气城市</span><input id="daily-note-city" type="text" maxlength="80" placeholder="例如：重庆" autocomplete="off"></label>
+      </div>
+      <p class="footer-note">天气取自 Open-Meteo 的当日预报。无法获取时只追加日期和星期。</p>
+    </section>
+
+    <section class="email-card" aria-labelledby="email-heading">
+      <div class="section-heading"><h2 id="email-heading">发送结果邮件</h2></div>
+      <label class="toggle"><input id="email-enabled" type="checkbox"><span>每天发送完同一时间的全部任务后，发一封汇总邮件</span></label>
+      <div class="email-fields">
+        <label class="field"><span>QQ 发件邮箱</span><input id="qq-address" type="email" placeholder="12345678@qq.com" autocomplete="email"></label>
+        <label class="field"><span>收件邮箱</span><input id="email-recipient" type="email" placeholder="可以与发件邮箱相同" autocomplete="email"></label>
+        <label class="field"><span>QQ 邮箱 SMTP 授权码</span><input id="authorization-code" type="password" autocomplete="off" placeholder="填写邮箱设置中生成的授权码"></label>
+      </div>
+      <p class="footer-note">请在 QQ 邮箱网页设置中开启 SMTP 服务并生成授权码。这里填授权码，不填 QQ 登录密码。授权码会保存在本机 <code>config.json</code>，请勿公开或上传仓库。</p>
+    </section>
+
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+    <p class="footer-note">发送前请确认昵称与聊天标题完全一致。页面关闭后，已保存的配置仍在本机。</p>
+  </main>
+
+  <template id="task-template">
+    <article class="task-card">
+      <div class="task-top">
+        <div>
+          <span class="task-number"></span>
+          <h3>发送任务</h3>
+        </div>
+        <div class="task-actions">
+          <label class="toggle"><input class="enabled" type="checkbox" checked><span>启用</span></label>
+          <button class="remove-task" type="button" aria-label="删除此任务">删除</button>
+        </div>
+      </div>
+      <div class="fields">
+        <label class="field">
+          <span>好友昵称</span>
+          <input class="name" type="text" maxlength="100" placeholder="例如：moonbird 或 🌾" autocomplete="off" required>
+        </label>
+        <label class="field time-field">
+          <span>每天发送时间</span>
+          <input class="send-at" type="time" value="20:30" required>
+        </label>
+        <label class="field message-field">
+          <span>发送内容</span>
+          <textarea class="message" rows="3" maxlength="2000" placeholder="输入要发送的文字" required></textarea>
+        </label>
+      </div>
+    </article>
+  </template>
+</body>
+</html>

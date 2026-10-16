@@ -2,8 +2,6 @@
 
 建议选 x86_64、4 GB 内存的 Ubuntu 24.04 LTS 云服务器。项目使用 Playwright Chromium；网页版在云服务器的无界面模式下能否维持登录和发信，仍须在实际服务器上验证。先完成下面的手动发信检查，再启用定时器。
 
-如果购买时选到了 OpenCloudOS 镜像，请先核对 `/etc/os-release`。下述 `apt` 命令适用于 Ubuntu；Playwright 官方列出的 Linux 支持环境是 Ubuntu 和 Debian，OpenCloudOS 不在该列表中。对于尚未部署项目的新服务器，建议在腾讯云控制台选择“重装系统”，切换到 Ubuntu 24.04 LTS 后再按此文档操作。重装会清除服务器现有数据，先确认实例上没有需要保留的文件。
-
 ## 1. 准备项目
 
 通过 SSH 登录服务器，使用一个普通用户（不要用 root）把项目放在 `~/douyin-spark`。可上传项目生成的 `douyin-spark-linux.zip`，在该用户主目录执行 `mkdir -p ~/douyin-spark && cd ~/douyin-spark && unzip ~/douyin-spark-linux.zip`。上传包只包含源码、配置样例和部署文件，不含本机 `config.json`、`.venv` 或 `.spark-state`。若另行复制 `config.json`，先将所有任务设为 `"enabled": false`。

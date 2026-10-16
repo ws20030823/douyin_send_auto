@@ -77,6 +77,7 @@ ssh -L 8765:127.0.0.1:8765 用户名@服务器公网IP
 ```
 
 本机浏览器打开 `http://127.0.0.1:8765/`，填写昵称、文字和发送时间，保存后在服务器检查 `config.json`。不要在云服务器安全组中开放 8765 端口。定时任务按**北京时间**判断；同一好友可以配置多个不同任务 `id`，但每个任务每天只自动尝试一次。手动 `send` 不受这个限制。
+<img width="2328" height="1132" alt="image" src="https://github.com/user-attachments/assets/e7c5d5f9-1340-4df3-ba50-49c041a671bb" />
 
 配置页下方可以开启“发送结果邮件”。QQ 发件邮箱填写完整 `xxx@qq.com`，收件邮箱可与发件邮箱相同。先到 QQ 邮箱网页设置中开启 SMTP 并生成**授权码**，然后把授权码填入配置页；不要填 QQ 登录密码，也不要在聊天中发送授权码。保存后 `config.json` 包含授权码，请只通过安全连接传到服务器，并在服务器执行 `chmod 600 ~/douyin-spark/config.json`。每个设定时间的所有任务处理完后，程序通过 `smtp.qq.com:465` 发送一封汇总，列出成功、失败、结果未确认及可判断的原因。QQ 邮箱的 SMTP 地址、端口和授权码说明可参考[腾讯云文档](https://main.qcloudimg.com/raw/document/product/pdf/1270_46586_cn.pdf)。
 
